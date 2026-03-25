@@ -1,23 +1,12 @@
-const dns = require("dns");
-dns.setDefaultResultOrder("ipv4first"); // ✅ FORCE IPv4
+const { Resend } = require("resend");
 
-const nodemailer = require("nodemailer");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, htmlContent) => {
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
-
-    await transporter.sendMail({
-        from: `"MediQueue" <${process.env.EMAIL_USER}>`,
-        to,
-        subject,
+    await resend.emails.send({
+        from: process.env.EMAIL_USER,
+        to: to,
+        subject: subject,
         html: htmlContent
     });
 };
