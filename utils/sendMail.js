@@ -9,7 +9,7 @@ const sendEmail = async (to, subject, htmlContent) => {
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
     const sender = {
-        email: "venkatprashu008@gmail.com", // 👈 YOU CAN USE YOUR GMAIL HERE
+        email: "venakataprasad5@gmail.com", // 👈 YOU CAN USE YOUR GMAIL HERE
         name: "MediQueue"
     };
 
