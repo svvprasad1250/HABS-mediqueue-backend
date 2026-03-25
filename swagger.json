@@ -146,6 +146,98 @@
                 }
             }
         },
+        "/api/auth/forgot-password":{
+            "post":{
+                "tags":["Auth"],
+                "summary":"forgot password",
+                "requestBody":{
+                    "required":true,
+                    "content":{
+                        "application/json":{
+                            "schema":{
+                                "type":"object",
+                                "properties":{
+                                    "email":{
+                                        "type":"string",
+                                        "example":"steeve@example.com"
+                                    }
+                                },
+                                "required":["email"]
+                            }
+                        }
+                    }
+                },
+                "responses":{
+                    "201":{
+                        "description":"OTP sent success !"
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-otp":{
+            "post":{
+                "tags":["Auth"],
+                "summary":"verify otp",
+                "requestBody":{
+                    "required":true,
+                    "content":{
+                        "application/json":{
+                            "schema":{
+                                "type":"object",
+                                "properties":{
+                                    "email":{
+                                        "type":"string",
+                                        "example":"steeve@yopmail.com"
+                                    },
+                                    "otp":{
+                                        "type":"string",
+                                        "example":"123456"
+                                    }
+                                },
+                                "required":["email","otp"]
+                            }
+                        }
+                    }
+                },
+                "responses":{
+                    "201":{
+                        "description":"password reset successful!"
+                    }
+                }
+            }
+        },
+        "/api/auth/reset-password":{
+            "post":{
+                "tags":["Auth"],
+                "summary":"reset password",
+                "requestBody":{
+                    "required":true,
+                    "content":{
+                        "application/json":{
+                            "schema":{
+                                "type":"object",
+                                "properties":{
+                                    "email":{
+                                        "type":"string",
+                                        "example":"steeve@yopmail.com"
+                                    },
+                                    "newPassword":{
+                                        "type":"string",
+                                        "example":"steeve@1234"
+                                    }
+                                },
+                                "required":["email","newPassword"]
+                            }
+                        }
+                    }
+                },
+                "responses":{
+                    "201":{
+                        "description":"password reset successful!"
+                    }
+                }
+            }
+        },
 
         "/api/users/current-user":{
             "get":{
