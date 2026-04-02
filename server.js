@@ -1,6 +1,5 @@
 const express = require("express");
 const connectDB = require("./config/dbConnection");
-const path = require("path");
 const dotenv = require("dotenv").config();
 
 connectDB()
@@ -21,7 +20,6 @@ app.use("/api/auth",require("./routes/authRoutes"));
 app.use("/api/users",require("./routes/userRoutes"));
 app.use("/api/hospitals",require("./routes/hospitalRoutes"))
 app.use(errorHandler);
-app.use("/uploads",express.static(path.join(__dirname,"uploads")))
 
 app.listen(port,()=>{
     console.log(`server is connected at ${port}`)

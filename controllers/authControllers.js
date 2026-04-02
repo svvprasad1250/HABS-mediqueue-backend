@@ -4,6 +4,8 @@ const User = require("../models/userModel")
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendMail");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 const mongoose = require("mongoose");
 
 const refreshExpireTime = "7d"
@@ -16,7 +18,25 @@ const accessExpireTime = "15m";
 const registerUser = asyncHandler(
     async(req,res)=>{
         const {name,email,password,role,department,phone} = req.body;
-        const profileImage = req.file ? `/uploads/${req.file.filename}` : null;
+        
+        let profileImage = null;
+        if (req.file) {
+            const streamUpload = () => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: "profile_images" },
+                        (error, result) => {
+                            if (result) resolve(result);
+                            else reject(error);
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+            };
+
+            const result = await streamUpload();
+            profileImage = result.secure_url; // 🔥 IMPORTANT
+        }
 
         if(!name || !email || !password ){
             res.status(400);
