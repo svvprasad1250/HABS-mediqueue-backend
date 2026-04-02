@@ -1,8 +1,8 @@
 
 const asyncHandler=require("../middleware/asyncHandler");
 const User = require("../models/userModel");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 
 //@desc current user
 //@route GET /api/users/current-user
@@ -83,14 +83,32 @@ const updateUserProfile = asyncHandler(
         if (name) user.name = name;
         if (phone) user.phone = phone;
 
-        if(req.file){
-            if(user.profileImage){
-                const oldImg = path.join(__dirname,"..",user.profileImage);
-                if(fs.existsSync(oldImg)){
-                    fs.unlinkSync(oldImg)
+        if (req.file) {
+            const streamUpload = () => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: "profile_images" },
+                        (error, result) => {
+                            if (result) resolve(result);
+                            else reject(error);
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+            };
+            const result = await streamUpload();
+                if (user.profileImage) {
+                    try {
+                        const parts = user.profileImage.split("/");
+                        const fileName = parts[parts.length - 1];
+                        const publicId = fileName.split(".")[0];
+
+                        await cloudinary.uploader.destroy(`profile_images/${publicId}`);
+                    } catch (err) {
+                        console.log("Old image delete failed");
+                    }
                 }
-            }
-            user.profileImage = `/uploads/${req.file.filename}`
+            user.profileImage = result.secure_url;
         }
         
         const updatedUser = await user.save();
