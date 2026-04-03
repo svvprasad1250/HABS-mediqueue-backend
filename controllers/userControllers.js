@@ -111,10 +111,15 @@ const updateUserProfile = asyncHandler(
             user.profileImage = result.secure_url;
         }
         
-        const updatedUser = await user.save();
+        await user.save();
         res.status(200).json({
             message: "Profile updated successfully",
-            user: updatedUser
+            id:user.id,
+            name:user.name,
+            email:user.email,
+            phone:user.phone,
+            role:user.role,
+            profileImage:user.profileImage
         });
     }
 )
