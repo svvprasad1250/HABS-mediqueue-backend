@@ -235,7 +235,11 @@ const forgotPassword = asyncHandler(
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const hashedOTP = await bcrypt.hash(otp,10);
         user.resetOTP = hashedOTP;
-        user.resetOTPExpire = Date.now() + 10 * 60 * 1000;
+        user.resetOTPExpire = Date.now() + 2 * 60 * 1000;
+        if (user.resetOTPExpire && user.resetOTPExpire > Date.now() - 30 * 1000) {
+            res.status(429);
+            throw new Error("Please wait before requesting another OTP");
+        }
         await user.save();
         try{
             await sendEmail(
