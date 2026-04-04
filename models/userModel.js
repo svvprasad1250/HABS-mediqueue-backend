@@ -63,6 +63,9 @@ const userSchema = mongoose.Schema({
     },
     resetOTPExpire:{
         type:Date
+    },
+    lastOtpSentAt: {
+        type: Date
     }
 
 }, {

@@ -220,77 +220,92 @@ const refreshAccessToken = asyncHandler(
 //@route POST /api/auth/forgot-password
 //@access public
 
-const forgotPassword = asyncHandler(
-    async(req,res)=>{
-        const {email} = req.body;
-        if(!email){
-            res.status(400);
-            throw new Error("email is mandate!")
-        }
-        const user = await User.findOne({email});
-        if(!user){
-            res.status(400);
-            throw new Error("User not found")
-        }
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedOTP = await bcrypt.hash(otp,10);
-        user.resetOTP = hashedOTP;
-        user.resetOTPExpire = Date.now() + 2 * 60 * 1000;
-        if (user.resetOTPExpire && user.resetOTPExpire > Date.now() - 30 * 1000) {
-            res.status(429);
-            throw new Error("Please wait before requesting another OTP");
-        }
-        await user.save();
-        try{
-            await sendEmail(
-                user.email,
-                "Password Reset OTP",
-                ` <h2> Your OTP is: ${otp} </h2> `
-            )
-        }catch(err){
-            throw new Error("Email sending failed!")
-        }
-        res.status(200).json({
-            message:"OTP sent to email"
-        })
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        res.status(400);
+        throw new Error("Email is mandatory!");
     }
-)
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(400);
+        throw new Error("User not found");
+    }
+
+    if (user.lastOtpSentAt && Date.now() - user.lastOtpSentAt < 30 * 1000) {
+        res.status(429);
+        throw new Error("Please wait 30 seconds before requesting another OTP");
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOTP = await bcrypt.hash(otp, 10);
+
+    user.resetOTP = hashedOTP;
+    user.resetOTPExpire = Date.now() + 2 * 60 * 1000; // 2 min
+    user.lastOtpSentAt = Date.now();
+
+    await user.save();
+
+    try {
+        await sendEmail(
+            user.email,
+            "Password Reset OTP",
+            `<h2>Your OTP is: ${otp}</h2>`
+        );
+    } catch (err) {
+        throw new Error("Email sending failed!");
+    }
+
+    res.status(200).json({
+        message: "OTP sent to email"
+    });
+});
 
 //@desc Reset password
 //@route POST /api/auth/reset-password
 //@access public
 
-const resetPassword = asyncHandler(
-    async(req,res)=>{
-        const {email,newPassword} = req.body;
-        if(!email || !newPassword){
-            res.status(400);
-            throw new Error("All Feilds are mandate!")
-        }
-        const user = await User.findOne({email});
-        if (!user) {
-            res.status(400);
-            throw new Error("User not found");
-        }
-        const hashedPassword = await bcrypt.hash(newPassword,10);
-        user.password = hashedPassword;
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, newPassword } = req.body;
 
-        user.resetOTP = undefined;
-        user.resetOTPExpire = undefined;
-
-        await user.save();
-        try{
-            await sendEmail(
-                user.email,
-                "Password changed",
-                ` <h2> Password reset successful </h2> `
-            )
-        }catch(err){
-            throw new Error("Email sending failed!")
-        }
-        res.status(200).json({message:"password reset successful"})
+    if (!email || !newPassword) {
+        res.status(400);
+        throw new Error("All fields are mandatory!");
     }
-)
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(400);
+        throw new Error("User not found");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    user.resetOTP = undefined;
+    user.resetOTPExpire = undefined;
+    user.lastOtpSentAt = undefined;
+
+    await user.save();
+
+    try {
+        await sendEmail(
+            user.email,
+            "Password changed",
+            `<h2>Password reset successful</h2>`
+        );
+    } catch (err) {
+        throw new Error("Email sending failed!");
+    }
+
+    res.status(200).json({
+        message: "Password reset successful"
+    });
+});
 
 //@desc Verify OTP
 //@route POST /api/auth/verify-otp
