@@ -220,63 +220,79 @@ const rescheduleAppointment =  asyncHandler(
     }
 )
 
-const deleteAppointment = asyncHandler(
-    async(req,res)=>{
-        const {reasonForCancellation} = req.body
-        if(!mongoose.Types.ObjectId.isValid(req.params.id)){
-            res.status(400);
-            throw new Error("Invalid Id format")
-        }
-        const appointment = await Appointment.findById(req.params.id);
+//@desc delete Appointment by patient
+//@route DELETE /api/appointments/{id}
+//@access private
 
-        if(!appointment){
-            res.status(400);
-            throw new Error("appointment not found");
-        }
-        if(req.user.role !== "admin" && appointment.patient.toString() !== req.user.id ){
-            res.status(403);
-            throw new Error("You are not allowed to delete this appointment");
-        }
+const deleteAppointment = asyncHandler(async (req, res) => {
+    const { reasonForCancellation } = req.body;
 
-        await Appointment.findByIdAndDelete(req.params.id);
-        const doctor = await User.findById(appointment.doctor);
-        const patient = await User.findById(appointment.patient);
-        try{
-            await sendEmail(
-                doctor.email,
-                "Appointment Cancelled - MediQueue",
-                `
-                <h2>Hello Dr. ${doctor.name}</h2>
-                <p>The appointment with patient <b>${patient.name}</b> has been cancelled.</p>
-                <p><b>Appointment Code:</b> ${appointment.appointmentCode}</p>
-                <p><b>Date:</b> ${appointment.appointmentDate}</p>
-                <p><b>Time:</b> ${appointment.timeSlot}</p
-                ${reasonForCancellation ? ` <p><b> Reason: </b> ${reasonForCancellation}</p> ` : ""}
-                `
-            )
-            await sendEmail(
-                patient.email,
-                "Appointment Cancelled - MediQueue",
-                `
-                <h2>Hello ${patient.name}</h2>
-                <p>Your appointment has been successfully cancelled.</p>
-                <p><b>Appointment Code:</b> ${appointment.appointmentCode}</p>
-                <p><b>Department:</b> ${appointment.department}</p>
-                <p><b>Date:</b> ${appointment.appointmentDate}</p>
-                <p><b>Time:</b> ${appointment.timeSlot}</p>
-                ${reasonForCancellation ? `<p><b>Reason:</b> ${reasonForCancellation}</p>` : ""}
-                <p>If you still need a consultation, you can book a new appointment.</p>
-                <p>Thank you for using MediQueue.</p>
-                `
-            );
-        }catch(err){
-            console.log("Email sending failed:", err.message);
-        }
-        res.status(200).json({
-            message:`contact deleted successfully!`,
-            id:req.params.id
-        })
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        res.status(400);
+        throw new Error("Invalid Id format");
     }
-)
+
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+        res.status(404);
+        throw new Error("Appointment not found");
+    }
+
+    if (
+        req.user.role !== "admin" &&
+        appointment.bookedBy.toString() !== req.user.id
+    ) {
+        res.status(403);
+        throw new Error("You are not allowed to delete this appointment");
+    }
+
+    const doctor = await User.findById(appointment.doctor._id);
+
+    const user = await User.findById(appointment.bookedBy);
+
+    const patient = appointment.patient;
+
+    await Appointment.findByIdAndDelete(req.params.id);
+
+    try {
+        await sendEmail(
+            doctor.email,
+            "Appointment Cancelled - MediQueue",
+            `
+            <h2>Hello Dr. ${doctor.name}</h2>
+            <p>The appointment with patient <b>${patient.name}</b> has been cancelled.</p>
+            <p><b>Appointment Code:</b> ${appointment.appointmentCode}</p>
+            <p><b>Date:</b> ${appointment.appointmentDate}</p>
+            <p><b>Time:</b> ${appointment.timeSlot}</p>
+            ${reasonForCancellation ? `<p><b>Reason:</b> ${reasonForCancellation}</p>` : ""}
+            `
+        );
+
+        await sendEmail(
+            user.email,
+            "Appointment Cancelled - MediQueue",
+            `
+            <h2>Hello ${user.name}</h2>
+            <p>Your appointment has been successfully cancelled.</p>
+            <p><b>Appointment Code:</b> ${appointment.appointmentCode}</p>
+            <p><b>Patient:</b> ${patient.name}</p>
+            <p><b>Department:</b> ${appointment.department}</p>
+            <p><b>Date:</b> ${appointment.appointmentDate}</p>
+            <p><b>Time:</b> ${appointment.timeSlot}</p>
+            ${reasonForCancellation ? `<p><b>Reason:</b> ${reasonForCancellation}</p>` : ""}
+            <p>If needed, you can book a new appointment.</p>
+            `
+        );
+
+    } catch (err) {
+        console.log("Email sending failed:", err.message);
+    }
+
+    res.status(200).json({
+        message: "Appointment deleted successfully!",
+        id: req.params.id,
+    });
+});
 
 module.exports = {getAppointments,createAppointment,updateAppointmentStatus,rescheduleAppointment,deleteAppointment}
