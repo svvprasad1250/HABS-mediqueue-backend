@@ -16,15 +16,12 @@ const getAppointments = asyncHandler(async (req, res) => {
     if(req.user.role === "doctor"){
         appointments = await Appointment
         .find({ doctor: req.user.id })
-        .populate("patient", "name email phone");
     }
     else if(req.user.role === "admin"){
-        appointments = await Appointment
-        .find().populate("patient","name email phone").populate("doctor","name email department")
+        appointments = await Appointment.find()
     }else{
         appointments = await Appointment
         .find({ bookedBy: req.user.id })
-        .populate("doctor", "name email department");
     }
 
     res.status(200).json(appointments);
